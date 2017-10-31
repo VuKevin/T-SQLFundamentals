@@ -1,9 +1,5 @@
 USE HPS;
-
 SELECT * FROM HR.Employees;
-
-/* Chapter 2 Exercises */
-
 --  {orderid, custid, empid, orderdate, requireddate, shippeddate, shipperid, freight, shipname, shipaddress, shipcity, shipregion, shippostalcode, shipcountry} ∈ Sales.Orders
 
 -- #1. Write a query against the Sales.Orders table that returns orders placed in June 2007.
