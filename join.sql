@@ -1,14 +1,16 @@
 USE HPS;
 
+SELECT * FROM HR.Employees;
+SELECT * FROM dbo.Nums;
+
 -- #1.1 Write a query that generates five copies of each employee row.
 -- Tables involved: HR.Employees and dbo.Nums
 
-SELECT H.empid, H.firstname, H.lastname, N.n
-FROM HR.Employees as H
+SELECT Hr.Employees.empid, Hr.Employees.firstname, HR.Employees.lastname, N.xid
+FROM HR.Employees 
 CROSS JOIN dbo.Nums as N
-WHERE N.n <= 5
-ORDER BY n, empid;
-
+WHERE N.xid <= 5
+ORDER BY xid, empid;  
 
 -- #1.2 Write a query that returns a row for each employee and day in the range June 12, 2009 through
 -- June 16, 2009.
