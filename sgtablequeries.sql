@@ -36,14 +36,22 @@ WHERE DAY(orderdate) LIKE
 			DAY(orderdate)
 	END;
 
-SELECT orderid, orderdate, custid, empID
+SELECT orderid, orderdate, custid, empid
 FROM Sales.Orders
 WHERE orderdate = EOMONTH(orderdate);
+
+SELECT orderid, orderdate, custid, empid
+FROM Sales.Orders
+WHERE orderdate = DATEADD(d, -1, DATEADD(m, DATEDIFF(m, 0, orderdate) + 1, 0)) ;
 
 /* Notes:
 	- A switch statement is used to aid in filtering cases where the last day falls on the 31st, on the 30th, 
 	or special cases with February and leap years.
 	- EOMONTH(specify_date_to_return_last_day_of_month) 
+	- Third option is the old fashion method prior to the release of EOMONTH.
+		- DATEDIFF finds the total months until the order date
+		- The result is incremented by 1  to add a month to the orderdate
+		- Then you can subtract 1 to get the lastday
 */
 
 -- #3. Write a query against the HR.Employees Table that returns employees with last name containing the letter a twice or more.
@@ -57,6 +65,10 @@ SELECT empid, firstname, lastname
 FROM HR.Employees
 WHERE lastname like '%a%a%';
 
+SELECT empid, firstname, lastname
+FROM HR.Employees
+WHERE CHARINDEX('a', lastname) > 0 AND CHARINDEX('a', STUFF(lastname, CHARINDEX('a', lastname), 1, '')) > 1;
+
 /* Notes:
 	Steps include getting the length of the last name and subtracting it with the length of the last name removing all the a's
 	If the resulting difference is greater or equal to two, then that employee's last name must contain at least 2 a's.
@@ -68,9 +80,12 @@ WHERE lastname like '%a%a%';
    [ ] Any single character within the specified range (for example, [a-f]) or set (for example, [abcdef]).
    [^] Any single character not within the specified range (for example, [^a - f]) or set (for example, [^abcdef]).
 
+   - CHAR index returns the index at which the characters is found 
+   = STUFF(targetstring, start position, amount of chars to replace, whattoreplacewith) -- I used this as a medium to "replace x chars instead of all"
+
 */
 
--- #4*. Write a query against the Sales.OrderDetails table that returns orders with total value (quantity*unit-price) greater than 10k AND sort it by total value
+-- #4. Write a query against the Sales.OrderDetails table that returns orders with total value (quantity*unit-price) greater than 10k AND sort it by total value
 -- Tables involved: TSQL2012 database and the Sales.OrderDetails table
 
 SELECT orderid, SUM(qty * unitprice) as totalvalue
@@ -78,6 +93,25 @@ FROM Sales.OrderDetails
 GROUP BY orderid
 HAVING SUM(qty * unitprice) > 10000 
 ORDER BY totalvalue DESC;
+
+with cte1 as
+(
+    SELECT orderid, SUM(qty * unitprice) AS totalvalue
+    FROM Sales.OrderDetails
+    GROUP BY orderid
+)
+SELECT * FROM cte1
+WHERE totalvalue > 10000
+
+SELECT * FROM
+(
+	SELECT orderid, SUM(qty * unitprice) as totalvalue
+	FROM Sales.OrderDetails
+	GROUP BY orderid
+) As A
+WHERE A.totalvalue > 10000
+ORDER BY A.totalvalue DESC
+
 
 /* Notes:
 	HAVING is used in place of WHERE because WHERE is unable to handle aggregate functions. 
@@ -90,6 +124,9 @@ ORDER BY totalvalue DESC;
 	GROUP BY column_names(s)
 	HAVING condition
 	ORDER BY column_names(s);
+	
+	The second method uses a CTE
+	The third method uses a subquery/nested query.
 	
 */
 
@@ -118,6 +155,7 @@ ORDER BY avgfreight DESC;
 /* Notes:
 	SELECT TOP num clause specifies the number of records to return that are of interest.
 	AVG() returns the average value of a numeric column
+	OFFSET 0 ROWS FETCH NEXT 3 ROWS ONLY is equivalent to TOP 3
 */
 
 -- #6. Write a query against the Sales.Orders table that calculates row numbers for orders based on order date ordering (using the order ID as the tiebreaker) for each customer separately.
@@ -127,9 +165,22 @@ SELECT custid, orderdate, orderid, ROW_NUMBER() OVER(PARTITION BY custid ORDER B
 FROM Sales.Orders
 ORDER BY custid, rownum 
 
+SELECT custid, orderdate, orderid
+FROM Sales.Orders as SO1
+	CROSS APPLY 
+	(
+		SELECT COUNT(*) + 1 AS rownum
+		FROM Sales.Orders as SO2 
+		WHERE SO1.custid = SO2.custid
+		AND SO1.orderdate > SO2.orderdate
+		AND SO1.orderid > SO2.orderid
+	) SO2
+ORDER BY custid, rownum;
+
 /* Notes:
 	ROW_NUMBER() OVER(PARTITION BY column_name ORDER BY column_name, column_name)
 	Note: ROW_NUMBER() and RANK() are similar except RANK provides the same numeric value for ties.
+	Cross Apply, is similar to a join, but applies to a subquery
 */
 
 -- #7. Using the HR.Employees table, figure out the SELECT statement that returns for each employee the
@@ -187,3 +238,13 @@ CASE
 	WHEN region IS NULL THEN 2 
 	ELSE 1 
 END, region;
+
+SELECT custid, region
+FROM Sales.Customers
+WHERE region is NOT NULL
+
+UNION
+
+SELECT custid, region
+FROM Sales.Customers
+WHERE region is NULL;
