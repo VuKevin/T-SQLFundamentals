@@ -46,12 +46,28 @@ CROSS JOIN dbo.Nums AS D
 WHERE D.xid <= DATEDIFF(day, '20090612', '20090616') + 1
 ORDER BY empid, dt;
 
+SELECT HR.Employees.empid,
+DATEADD(day, D.xid - 1, '20090612') AS dt
+FROM HR.Employees 
+CROSS JOIN dbo.Nums AS D
+WHERE D.xid <= CAST(20090616-20090612+1 AS Integer)
+ORDER BY empid, dt;
+
+SELECT HR.Employees.empid,
+DATEADD(day, D.xid - 1, '20090612') AS dt
+FROM HR.Employees 
+CROSS JOIN dbo.Nums AS D
+WHERE D.xid <=	
+	(
+		SELECT (20090616-20090612+1) as DaysDiff
+	)
+ORDER BY empid, dt;
+
 /* Notes:
 	DATEADD (datepart , number , date )  -- Returns a specified date.
 		datepart -- the part of a date that will be affected
 		number --  an expression that represents the change in the datepart
 		date -- the actual initial date
-
 	DATEDIFF ( datepart , startdate , enddate )  -- Returns a datepart int of the difference between the start and end date 
 		datepart -- the part of a date that is of interest
 		startdate -- the start date
