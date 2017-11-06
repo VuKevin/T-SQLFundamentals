@@ -86,13 +86,32 @@ JOIN Sales.Orders
 ON Sales.Orders.custid = Sales.Customers.custid
 JOIN Sales.OrderDetails 
 ON Sales.OrderDetails.orderid = Sales.Orders.orderid
-WHERE Sales.Customers.country = N'USA'
+WHERE Sales.Customers.country = 'USA'
 GROUP BY Sales.Customers.custid;
+
+SELECT Sales.Customers.custid, 
+		COUNT(DISTINCT Sales.Orders.orderid) AS numorders, 
+		SUM(Sales.OrderDetails.qty) AS totalqty
+FROM Sales.Customers, Sales.Orders, Sales.OrderDetails
+WHERE Sales.Customers.custid = Sales.Orders.custid
+AND Sales.Orders.orderid = Sales.OrderDetails.orderid 
+AND Sales.Customers.country = 'USA'
+GROUP BY Sales.Customers.custid;
+
+SELECT DISTINCT Sales.Customers.custid,
+		COUNT(DISTINCT Sales.Orders.orderid) AS numorders, 
+		SUM(Sales.OrderDetails.qty) AS totalqty
+FROM Sales.Customers 
+JOIN Sales.Orders 
+ON Sales.Orders.custid = Sales.Customers.custid
+JOIN Sales.OrderDetails 
+ON Sales.OrderDetails.orderid = Sales.Orders.orderid
+WHERE Sales.Customers.country = 'USA'
+ORDER BY Sales.Customers.custid;
 
 /* Notes:
 	COUNT ( { [ [ ALL | DISTINCT ] expression ] | * } )  
 		-- Returns the number of items in a group. In this case, COUNT will return the number of distinct (nonnull) orders
-
 	The general procedure is to find the common fields between two tables. 
 		Sales.Customers and Sales.Orders share custid while Sales.Orders and Sales.OrderDetails share orderid
 */
@@ -105,8 +124,19 @@ FROM Sales.Customers
 LEFT JOIN Sales.Orders
 ON Sales.Orders.custid = Sales.Customers.custid;
 
+SELECT Sales.Customers.custid, Sales.Customers.companyname, Sales.Orders.orderid, Sales.Orders.orderdate
+FROM Sales.Orders
+RIGHT JOIN Sales.Customers
+ON Sales.Orders.custid = Sales.Customers.custid;
+
+SELECT Sales.Customers.custid, Sales.Customers.companyname, Sales.Orders.orderid, Sales.Orders.orderdate
+FROM Sales.Customers, Sales.Orders
+WHERE Sales.Customers.custid *= Sales.Orders.custid;
+
 /* Notes:
 	We perform a LEFT JOIN because we want to be inclusive of all customers (table1) regardless if they placed an order or not
+	The second method simply reverses the table and uses a right join instead
+	The third method won't work in modern databases as this operator has been deprecated with the introdunction of LEFT JOIN
 */
 
 -- #4 Return customers who placed no orders.
@@ -118,9 +148,24 @@ LEFT JOIN Sales.Orders
 ON Sales.Orders.custid = Sales.Customers.custid
 WHERE Sales.Orders.orderid IS NULL;
 
+SELECT Sales.Customers.custid, Sales.Customers.companyname
+FROM Sales.Orders
+RIGHT JOIN Sales.Customers
+ON Sales.Orders.custid = Sales.Customers.custid
+WHERE Sales.Orders.orderid IS NULL;
+
+SELECT Sales.Customers.custid, Sales.Customers.companyname
+FROM Sales.Customers
+LEFT JOIN Sales.Orders
+ON Sales.Orders.custid = Sales.Customers.custid
+GROUP BY Sales.Customers.custid, Sales.Customers.companyname
+HAVING 1 = MAX
+(
+	CASE WHEN Sales.Orders.orderid IS NULL THEN 1 ELSE 0 END
+)
+
 /* Notes:
 	We perform a LEFT JOIN because we want to be inclusive of all customers (table1) regardless if they placed an order or not
-
 	We additionally want to filter our answer to just customers who placed no orders and thus utilize WHERE.
 */
 
@@ -133,6 +178,19 @@ JOIN Sales.Orders
 On Sales.Orders.custid = Sales.Customers.custid
 WHERE Sales.Orders.orderdate = '20070212';
 
+SELECT Sales.Customers.custid, Sales.Customers.companyname, Sales.Orders.orderid, Sales.Orders.orderdate
+FROM Sales.Customers 
+JOIN Sales.Orders
+On Sales.Orders.custid = Sales.Customers.custid
+WHERE Month(Sales.Orders.orderdate) = 2 and Day(Sales.Orders.orderdate) = 12 and Year(Sales.Orders.orderdate) = 2007;
+
+SELECT Sales.Customers.custid, Sales.Customers.companyname, Sales.Orders.orderid, Sales.Orders.orderdate
+FROM Sales.Customers 
+JOIN Sales.Orders
+On Sales.Orders.custid = Sales.Customers.custid
+WHERE DATEPART(MONTH, Sales.Orders.orderdate) = 2 AND DATEPART(YEAR, Sales.Orders.orderdate) = 2007 and  DATEPART(DAY, Sales.Orders.orderdate) = 12;
+
+
 -- #6 Return customers with orders placed on February 12, 2007, along with their orders. Also return customers
 -- who didn’t place orders on February 12, 2007.
 -- Tables involved: Sales.Customers and Sales.Orders
@@ -143,6 +201,18 @@ LEFT JOIN Sales.Orders
 On Sales.Orders.custid = Sales.Customers.custid
 AND Sales.Orders.orderdate = '20070212';
 
+SELECT Sales.Customers.custid, Sales.Customers.companyname, Sales.Orders.orderid, Sales.Orders.orderdate
+FROM Sales.Customers 
+LEFT JOIN Sales.Orders
+On Sales.Orders.custid = Sales.Customers.custid
+AND Month(Sales.Orders.orderdate) = 2 and Day(Sales.Orders.orderdate) = 12 and Year(Sales.Orders.orderdate) = 2007;
+
+SELECT Sales.Customers.custid, Sales.Customers.companyname, Sales.Orders.orderid, Sales.Orders.orderdate
+FROM Sales.Customers 
+LEFT JOIN Sales.Orders
+On Sales.Orders.custid = Sales.Customers.custid
+AND DATEPART(MONTH, Sales.Orders.orderdate) = 2 AND DATEPART(YEAR, Sales.Orders.orderdate) = 2007 and  DATEPART(DAY, Sales.Orders.orderdate) = 12;
+
 /* Notes:
 	AND keyword is applied before the join
 */
@@ -151,7 +221,7 @@ AND Sales.Orders.orderdate = '20070212';
 -- an order on February 12, 2007.
 -- Tables involved: Sales.Customers and Sales.Orders
 
-SELECT Sales.Customers.custid, Sales.Customers.companyname, 
+SELECT DISTINCT Sales.Customers.custid, Sales.Customers.companyname, 
 	CASE
 		WHEN Sales.Orders.orderdate = '20070212' THEN 'Yes'
 		ELSE 'No'
@@ -161,7 +231,7 @@ LEFT JOIN Sales.Orders
 ON Sales.Orders.custid = Sales.Customers.custid
 AND Sales.Orders.orderdate = '20070212';
 
-SELECT Sales.Customers.custid, Sales.Customers.companyname, 
+SELECT DISTINCT Sales.Customers.custid, Sales.Customers.companyname, 
 	CASE
 		WHEN Sales.Orders.orderdate IS NOT NULL THEN 'Yes'
 		ELSE 'No'
@@ -170,3 +240,51 @@ FROM Sales.Customers
 LEFT JOIN Sales.Orders
 ON Sales.Orders.custid = Sales.Customers.custid
 AND Sales.Orders.orderdate = '20070212';
+
+SELECT Sales.Customers.custid, Sales.Customers.companyname, 
+	CASE
+		WHEN Sales.Orders.orderdate = '20070212' THEN 'Yes'
+		ELSE 'No'
+	END as [HasOrderOn20070212]
+FROM Sales.Customers
+WHERE NOT EXISTS
+(
+	SELECT *
+	FROM Sales.Orders
+	WHERE Sales.Orders.custid = Sales.Customers.custid
+	AND Sales.Orders.orderdate = '20070212'
+); 
+-- Note: Unable to do in this specific example because EXIST and LEFT JOIN differ in that EXIST can't access variables from table B
+
+SELECT Sales.Customers.custid, Sales.Customers.companyname, 
+	CASE
+		WHEN Sales.Orders.orderdate = '20070212' THEN 'Yes'
+		ELSE 'No'
+	END as HasOrderOn20070212
+From Sales.Customers, Sales.Orders
+WHERE Sales.Orders.custid = Sales.Customers.custid
+AND Sales.Orders.orderdate = '20070212'
+
+UNION 
+
+SELECT Sales.Customers.custid, Sales.Customers.companyname, 'No' AS HasOrderOn20070212
+FROM Sales.Customers 
+WHERE NOT EXISTS
+(
+	SELECT 1 FROM Sales.Orders 
+	WHERE Sales.Orders.custid = Sales.Customers.custid
+	AND Sales.Orders.orderdate = '20070212'
+);
+
+SELECT Sales.Customers.custid, Sales.Customers.companyname, 'no' as HasOrderOn2007022012
+FROM Sales.Customers
+JOIN Sales.Orders
+ON Sales.Orders.custid = Sales.Customers.custid
+
+UNION 
+
+SELECT Sales.Customers.custid, Sales.Customers.companyname, 'yes' as HasOrderOn2007022012
+FROM Sales.Customers
+LEFT JOIN Sales.Orders
+ON Sales.Orders.custid = Sales.Customers.custid
+WHERE Sales.Orders.orderdate = '20070212';
