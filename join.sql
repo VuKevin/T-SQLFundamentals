@@ -12,9 +12,27 @@ CROSS JOIN dbo.Nums as N
 WHERE N.xid <= 5
 ORDER BY xid, empid; 
 
+SELECT Hr.Employees.empid, Hr.Employees.firstname, HR.Employees.lastname, N.xid
+FROM HR.Employees 
+LEFT JOIN dbo.Nums as N
+ON N.xid <= 5
+ORDER BY xid, empid;
+
+DECLARE @Placeholders TABLE
+	(n integer)
+INSERT INTO @Placeholders
+	Values (1), (2), (3), (4), (5), (6);
+
+SELECT Hr.Employees.empid, Hr.Employees.firstname, HR.Employees.lastname, N.n
+FROM HR.Employees 
+CROSS JOIN @Placeholders as N
+WHERE N.n <= 5
+ORDER BY n, empid; 
+
 /* Notes:
 	A CROSS JOIN simply takes the cross product without any restraints.
 	Thus, we utilize this with the arbitrary xid that is an element of [1. 600] to manipulate 5 copies of each employee row.
+	The third solution uses a tempoary table to act as dbo.Nums, since that table was merely used a medium to count to 5 copies before quitting.
 */
 
 -- #1.2 Write a query that returns a row for each employee and day in the range June 12, 2009 through
